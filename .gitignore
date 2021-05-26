@@ -1,4 +1,3 @@
-.gitignore
 .vscode
 .DS_STORE
 degrees/__pycache__
