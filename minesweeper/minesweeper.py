@@ -195,40 +195,41 @@ class MinesweeperAI():
             5) add any new sentences to the AI's knowledge base
                if they can be inferred from existing knowledge
         """
+        k = self.knowledge
+
         # 1), 2)
         self.moves_made.add(cell)
         self.mark_safe(cell)
 
         # 3)
-        s = Sentence(self.neighbours(cell), count)
+        s_new = Sentence(self.neighbours(cell), count)
         to_remove = []
-        for cell in s.cells:
+        for cell in s_new.cells:
             if cell in self.moves_made:
                 to_remove.append(cell)
             elif cell in self.safes:
                 to_remove.append(cell)
             elif cell in self.mines:
                 to_remove.append(cell)
-                s.count -= 1
+                s_new.count -= 1
         for r in to_remove:
-            s.cells.remove(r)
-        if len(s.cells) != 0:
-            (self.knowledge).append(s)
+            s_new.cells.remove(r)
+        if len(s_new.cells) != 0:
+            (k).append(s_new)
 
-        # 4) Count = len or 0 | Cell is known safe or mine | A subset of B
-        k = self.knowledge
-        removable = []
+        remove = []
+        add = []
 
         # mark any additional cells as safe or as mines if it can be concluded based on the AI's knowledge base
         for s in range(len(k)):
             safes = []
             mines = []
             if k[s].known_mines():
-                removable.append(s)
+                remove.append(s)
                 for cell in k[s].cells:
                     mines.append(cell)
             elif k[s].known_safes():
-                removable.append(s)
+                remove.append(s)
                 for cell in k[s].cells:
                     safes.append(cell)
             else:
@@ -238,35 +239,38 @@ class MinesweeperAI():
             for m in mines:
                 self.mark_mine(m)
 
-        for r in removable:
+        # reversed to avoid errors due to changed list size
+        for r in sorted(remove, reverse=True):
             del k[r]
-        removable.clear()
+        remove.clear()
 
         for s in range(len(k)):
-            s_new = Sentence(k[s].cells, k[s].count)
+            s_temp = Sentence(k[s].cells, k[s].count)
             for cell in k[s].cells:
                 if cell in self.mines:
-                    s_new.cells.remove(cell)
-                    s_new.count -= 1
+                    s_temp.cells.remove(cell)
+                    s_temp.count -= 1
                 elif cell in self.safes:
-                    s_new.cells.remove(cell)
-            if s_new.cells != k[s].cells:
-                removable.append(s)
-                if len(s_new.cells) != 0:
-                    k.append(s_new)
+                    s_temp.cells.remove(cell)
+            if s_temp.cells != k[s].cells:
+                remove.append(s)
+                if len(s_temp.cells) != 0:
+                    add.append(s_temp)
 
-        for r in removable:
+        # reversed to avoid errors due to changed list size
+        for r in sorted(remove, reverse=True):
             del k[r]
-        removable.clear()
+        k += add
+        remove.clear()
+        add.clear()
 
-        knowledge_to_add = []
-        for sentence in self.knowledge:
+        for sentence in k:
             if s_new.cells and sentence.cells != s_new.cells:
                 if sentence.cells.issubset(s_new.cells):
-                    knowledge_to_add.append(Sentence(s_new.cells-sentence.cells, s_new.count-sentence.count))
+                    add.append(Sentence(s_new.cells-sentence.cells, s_new.count-sentence.count))
                 if s_new.cells.issubset(sentence.cells):
-                    knowledge_to_add.append(Sentence(sentence.cells-s_new.cells, sentence.count-s_new.count))
-        self.knowledge += knowledge_to_add
+                    add.append(Sentence(sentence.cells-s_new.cells, sentence.count-s_new.count))
+        k += add
         
 
     def neighbours(self, cell):
@@ -315,8 +319,8 @@ class MinesweeperAI():
                     continue
                 poss.append((i,j))
 
-        c = random.choice(poss)
-        if c:
+        try:
+            c = random.choice(poss)
             return c
-        else:
+        except:
             return None
