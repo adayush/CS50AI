@@ -58,10 +58,10 @@ def transition_model(corpus, page, damping_factor):
     a link at random chosen from all pages in the corpus.
     """
     obj = dict()
-    for p in corpus:
-        obj[p] = (1 - damping_factor)*(1/len(corpus))
+    for p in corpus.keys():
+        obj[p] = (1 - damping_factor)/len(corpus)
         if p in corpus[page]:
-            obj[p] += damping_factor*(1/len(corpus[page]))
+            obj[p] += damping_factor/len(corpus[page])
 
     return obj
 
@@ -75,7 +75,31 @@ def sample_pagerank(corpus, damping_factor, n):
     their estimated PageRank value (a value between 0 and 1). All
     PageRank values should sum to 1.
     """
-    raise NotImplementedError
+    obj = dict()
+    for page in corpus.keys():
+        obj[page] = 0
+    count = 0
+
+    # choosing first page randomly 
+    page = random.choice(list(corpus.keys()))
+    obj[page] += 1
+    count += 1
+
+    # generating samples
+    while True:
+        tmodel = transition_model(corpus, page, damping_factor)
+        next_page = random.choices(list(tmodel.keys()), weights=tmodel.values(), k=1)[0]
+        obj[next_page] += 1
+        count += 1
+        if count == n:
+            break
+        page = next_page
+
+    # replacing count with probability in dict
+    for key in corpus.keys():
+        obj[key] = obj[key]/n
+    
+    return obj
 
 
 def iterate_pagerank(corpus, damping_factor):
@@ -88,7 +112,6 @@ def iterate_pagerank(corpus, damping_factor):
     PageRank values should sum to 1.
     """
     raise NotImplementedError
-
 
 if __name__ == "__main__":
     main()
